@@ -70,9 +70,9 @@ def download_trailer(media_title):
     cookies_file = "cookies.txt"
     cookies_content = os.environ.get("YOUTUBE_COOKIES", "")
     
-    # تنظيف وتنسيق محتوى الكوكيز لتجنب أي أخطاء في تنسيق Netscape
+    # كتابة ملف الكوكيز مع إضافة رأس Netscape التوضيحي لتجنب أي خطأ في التحقق
     if cookies_content:
-        cleaned_content = "\n".join([line.strip() for line in cookies_content.splitlines() if line.strip()])
+        cleaned_content = "# Netscape HTTP Cookie File\n" + "\n".join([line.strip() for line in cookies_content.splitlines() if line.strip() and not line.startswith('#')])
         with open(cookies_file, "w", encoding="utf-8") as f:
             f.write(cleaned_content + "\n")
             
