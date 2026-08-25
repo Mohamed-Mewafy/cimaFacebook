@@ -67,12 +67,14 @@ def download_trailer(media_title):
     if os.path.exists(output_filename):
         os.remove(output_filename)
         
-    # كتابة ملف الكوكيز مؤقتاً من متغير البيئة لتجاوز حظر يوتيوب
-    cookies_content = os.environ.get("YOUTUBE_COOKIES", "")
     cookies_file = "cookies.txt"
+    cookies_content = os.environ.get("YOUTUBE_COOKIES", "")
+    
+    # تنظيف وتنسيق محتوى الكوكيز لتجنب أي أخطاء في تنسيق Netscape
     if cookies_content:
+        cleaned_content = "\n".join([line.strip() for line in cookies_content.splitlines() if line.strip()])
         with open(cookies_file, "w", encoding="utf-8") as f:
-            f.write(cookies_content)
+            f.write(cleaned_content + "\n")
             
     ydl_opts = {
         'format': 'best[height<=720]',
@@ -81,7 +83,6 @@ def download_trailer(media_title):
         'quiet': True,
     }
     
-    # ربط ملف الكوكيز إذا كان متوفراً
     if os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 0:
         ydl_opts['cookiefile'] = cookies_file
 
@@ -90,7 +91,6 @@ def download_trailer(media_title):
             search_query = f"ytsearch1:{media_title} official trailer"
             ydl.download([search_query])
             
-        # تنظيف ملف الكوكيز المؤقت بعد الانتهاء
         if os.path.exists(cookies_file):
             os.remove(cookies_file)
             
