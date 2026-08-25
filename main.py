@@ -2,7 +2,6 @@ import os
 import sys
 import json
 import requests
-from bs4 import BeautifulSoup
 from yt_dlp import YoutubeDL
 
 # =================CONFIGURATION================
@@ -13,7 +12,7 @@ SITE_URL = "https://cimaspace.site"
 
 HISTORY_FILE = "posted_movies.json"
 FAILED_FILE = "failed_movies.json"
-HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 # ==============================================
 
 def load_list(filename):
@@ -56,35 +55,18 @@ def get_next_unposted_media():
             release_date = details_ar.get('release_date') or movie.get('release_date', '')
             vote_average = round(details_ar.get('vote_average') or movie.get('vote_average', 0), 1)
             
-            # جلب معرف IMDb الخاص بالفيلم
-            url_external = f"https://api.themoviedb.org/3/movie/{movie_id}/external_ids?api_key={TMDB_API_KEY}"
-            external_ids = requests.get(url_external, headers=HEADERS).json()
-            imdb_id = external_ids.get('imdb_id')
+            # جلب التريلر من فيديوهات TMDB
+            url_videos = f"https://api.themoviedb.org/3/movie/{movie_id}/videos?api_key={TMDB_API_KEY}"
+            videos_resp = requests.get(url_videos, headers=HEADERS).json().get('results', [])
             
             trailer_url = None
-            if imdb_id:
-                # البحث عن رابط التريلر من صفحة IMDb مباشرة
-                imdb_url = f"https://www.imdb.com/title/{imdb_id}/"
-                try:
-                    res = requests.get(imdb_url, headers=HEADERS)
-                    soup = BeautifulSoup(res.text, 'html.parser')
-                    # البحث عن فيديو التريلر في بيانات الصفحة المترابطة
-                    script_tag = soup.find('script', {'type': 'application/ld+json'})
-                    if script_tag:
-                        data = json.loads(script_tag.string)
-                        if 'trailer' in data and 'embedUrl' in data['trailer']:
-                            # استخراج رابط يوتيوب الداخلي أو تحويله بطريقة نظيفة
-                            embed_url = data['trailer']['embedUrl']
-                            if 'vi' in embed_url:
-                                video_key = embed_url.split('/vi/')[1].split('/')[0]
-                                trailer_url = f"https://www.youtube.com/watch?v={video_key}"
-                except Exception as ex:
-                    print(f"[-] خطأ في جلب بيانات IMDb: {ex}")
+            for v in videos_resp:
+                if v.get('site') == 'YouTube' and v.get('type') == 'Trailer':
+                    key = v.get('key')
+                    trailer_url = f"https://www.youtube.com/watch?v={key}"
+                    break
             
-            # إذا لم يتم العثور على IMDb، نرجع لطريقة يوتيوب الاعتيادية كاحتياطي
-            if not trailer_url:
-                url_videos = f"https://api.themoviedb.org/3/movie/{movie_id}/videos?api_key={TMDB_API_KEY}"
-                videos_resp = requests.get(url_videos, headers=HEADERS).json().get('results', [])
+            if not trailer_url and videos_resp:
                 for v in videos_resp:
                     if v.get('site') == 'YouTube':
                         key = v.get('key')
@@ -105,7 +87,7 @@ def download_trailer(trailer_url, media_title):
     if os.path.exists(output_filename):
         os.remove(output_filename)
         
-    # إعدادات متطورة لتجاوز الحظر عبر استخدام عميل عشوائي وتجنب القيود
+    # إعدادات متطورة لتجاوز الحظر بدون كوكيز وبدون الحاجة لبرامج خارجية
     ydl_opts = {
         'format': 'best[ext=mp4]/best',
         'outtmpl': output_filename,
@@ -114,7 +96,7 @@ def download_trailer(trailer_url, media_title):
         'ignoreerrors': False,
         'no_warnings': True,
         'geo_bypass': True,
-        'extractor_args': {'youtube': {'player_client': ['android', 'web', 'mweb']}},
+        'extractor_args': {'youtube': {'player_client': ['android']}},
     }
 
     try:
@@ -176,7 +158,7 @@ def cleanup(files):
                 pass
 
 if __name__ == "__main__":
-    print("=== تنفيذ مهمة نشر التريلر (CimaSpace Bot - IMDb Integration) ===")
+    print("=== تنفيذ مهمة نشر التريلر (CimaSpace Bot) ===")
     
     movie_id, title, overview, release_date, vote_average, trailer_url = get_next_unposted_media()
     if not movie_id:
@@ -208,7 +190,7 @@ if __name__ == "__main__":
         history = load_list(HISTORY_FILE)
         history.append(movie_id)
         save_list(HISTORY_FILE, history)
-        print("[+] تم الحفظ وتحديث السجل بنجاح.")
+        print("[+] تم الحفظ وتحديث السجل بنجاحة.")
         
     cleanup([raw_video])
     print("=== انتهت المهمة وأغلق السكربت بنجاح ===")
