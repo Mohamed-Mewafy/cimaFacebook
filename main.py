@@ -75,13 +75,12 @@ def download_trailer(media_title):
         with open(cookies_file, "w", encoding="utf-8") as f:
             f.write(cleaned_content + "\n")
             
-    # تحديث خيارات الصيغ لتكون مرنة وتختار أفضل جودة فيديو وصوت متاحين
+    # استخدام صيغة 'best' لتجنب مشاكل فك الشيفرة والدمج نهائياً
     ydl_opts = {
-        'format': 'bestvideo[height<=720]+bestaudio/best[height<=720]/best',
+        'format': 'best',
         'outtmpl': output_filename,
         'noplaylist': True,
         'quiet': True,
-        'merge_output_format': 'mp4',
     }
     
     if os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 0:
