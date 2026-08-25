@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import requests
+from yt_dlp import YoutubeDL
 
 # =================CONFIGURATION================
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "cebc63c38c381423c4ba63134d073a93")
@@ -54,20 +55,63 @@ def get_next_unposted_media():
             release_date = details_ar.get('release_date') or movie.get('release_date', '')
             vote_average = round(details_ar.get('vote_average') or movie.get('vote_average', 0), 1)
             
-            # جلب رابط بوستر الفيلم الرسمي بجودة عالية
-            poster_path = details_ar.get('poster_path') or movie.get('poster_path')
-            poster_url = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else None
+            # جلب رابط التريلر من يوتيوب عبر TMDB
+            url_videos = f"https://api.themoviedb.org/3/movie/{movie_id}/videos?api_key={TMDB_API_KEY}"
+            videos_resp = requests.get(url_videos, headers=HEADERS).json().get('results', [])
             
-            return movie_id, title_en, overview_ar, release_date, vote_average, poster_url
+            trailer_url = None
+            for v in videos_resp:
+                if v.get('site') == 'YouTube' and v.get('type') == 'Trailer':
+                    key = v.get('key')
+                    trailer_url = f"https://www.youtube.com/watch?v={key}"
+                    break
+            
+            if not trailer_url and videos_resp:
+                for v in videos_resp:
+                    if v.get('site') == 'YouTube':
+                        key = v.get('key')
+                        trailer_url = f"https://www.youtube.com/watch?v={key}"
+                        break
+            
+            return movie_id, title_en, overview_ar, release_date, vote_average, trailer_url
                 
     except Exception as e:
         print(f"[-] خطأ في الاتصال بـ TMDB: {e}")
         
     return None, None, None, None, None, None
 
-def post_to_facebook(poster_url, title, overview, release_date, vote_average):
-    print("[*] جاري النشر على الفيسبوك (صورة البوستر والقصة)...")
-    url = f"https://graph.facebook.com/v18.0/{PAGE_ID}/photos"
+def download_trailer(trailer_url, media_title):
+    print(f"[*] جاري تحميل التريلر لـ: {media_title}...")
+    output_filename = "trailer.mp4"
+    
+    if os.path.exists(output_filename):
+        os.remove(output_filename)
+        
+    # إعدادات متقدمة جداً لتجاوز حظر يوتيوب على السيرفرات السحابية بدون كوكيز
+    ydl_opts = {
+        'format': 'best[ext=mp4]/best',
+        'outtmpl': output_filename,
+        'noplaylist': True,
+        'quiet': False,
+        'ignoreerrors': False,
+        'no_warnings': True,
+        'extractor_args': {'youtube': {'player_client': ['android', 'web']}}, # خداع يوتيوب لتجاوز الحظر
+    }
+
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            ydl.download([trailer_url])
+            
+        if os.path.exists(output_filename) and os.path.getsize(output_filename) > 0:
+            print("[+] تم تحميل التريلر بنجاح!")
+            return output_filename
+    except Exception as e:
+        print(f"[-] خطأ في التحميل من يوتيوب: {e}")
+    return None
+
+def post_to_facebook(video_path, title, overview, release_date, vote_average):
+    print("[*] جاري نشر الفيديو (التريلر) على الفيسبوك...")
+    url = f"https://graph.facebook.com/v18.0/{PAGE_ID}/videos"
     
     year = release_date.split("-")[0] if release_date else "جديد"
     
@@ -85,43 +129,61 @@ def post_to_facebook(poster_url, title, overview, release_date, vote_average):
     )
 
     payload = {
-        'url': poster_url,
-        'caption': caption,
+        'description': caption,
         'access_token': PAGE_ACCESS_TOKEN
     }
     
     try:
-        response = requests.post(url, data=payload, headers=HEADERS)
-        result = response.json()
-        
-        if 'id' in result:
-            print(f"[+] تم نشر بوستر الفيلم والمنشور بنجاح برقم ID: {result['id']}")
-            return True
-        else:
-            print(f"[-] فشل النشر: {result}")
+        with open(video_path, 'rb') as video_file:
+            files = {'source': video_file}
+            response = requests.post(url, data=payload, files=files, headers=HEADERS)
+            result = response.json()
+            
+            if 'id' in result:
+                print(f"[+] تم نشر التريلر بنجاح برقم ID: {result['id']}")
+                return True
+            else:
+                print(f"[-] فشل النشر: {result}")
     except Exception as e:
         print(f"[-] حدث خطأ أثناء الاتصال بـ Graph API: {e}")
     return False
 
+def cleanup(files):
+    for f in files:
+        if os.path.exists(f):
+            try:
+                os.remove(f)
+            except:
+                pass
+
 if __name__ == "__main__":
-    print("=== تنفيذ مهمة نشر فيلم واحد (CimaSpace Bot - Photo Mode) ===")
+    print("=== تنفيذ مهمة نشر تريلر فيلم (CimaSpace Bot - Video Mode) ===")
     
-    movie_id, title, overview, release_date, vote_average, poster_url = get_next_unposted_media()
+    movie_id, title, overview, release_date, vote_average, trailer_url = get_next_unposted_media()
     if not movie_id:
         print("[-] لا توجد أفلام جديدة متاحة حالياً.")
         sys.exit(0)
         
     print(f"[+] الفيلم المستهدف: {title} (ID: {movie_id})")
     
-    if not poster_url:
-        print("[-] لا يوجد بوستر متاح لهذا الفيلم، تسجيل في القائمة السوداء...")
+    if not trailer_url:
+        print("[-] لا يوجد تريلر متاح لهذا الفيلم، تسجيل في القائمة السوداء...")
         failed_list = load_list(FAILED_FILE)
         if movie_id not in failed_list:
             failed_list.append(movie_id)
             save_list(FAILED_FILE, failed_list)
         sys.exit(0)
         
-    is_published = post_to_facebook(poster_url, title, overview, release_date, vote_average)
+    raw_video = download_trailer(trailer_url, title)
+    if not raw_video:
+        print("[-] خطأ في التحميل، تسجيل في القائمة السوداء...")
+        failed_list = load_list(FAILED_FILE)
+        if movie_id not in failed_list:
+            failed_list.append(movie_id)
+            save_list(FAILED_FILE, failed_list)
+        sys.exit(0)
+        
+    is_published = post_to_facebook(raw_video, title, overview, release_date, vote_average)
     
     if is_published:
         history = load_list(HISTORY_FILE)
@@ -129,4 +191,5 @@ if __name__ == "__main__":
         save_list(HISTORY_FILE, history)
         print("[+] تم الحفظ وتحديث السجل بنجاح.")
         
+    cleanup([raw_video])
     print("=== انتهت المهمة وأغلق السكربت بنجاح ===")
