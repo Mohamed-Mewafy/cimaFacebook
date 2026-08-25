@@ -17,6 +17,12 @@ jobs:
         with:
           python-version: '3.10'
 
+      # إضافة تشغيل Node.js المطلوب حالياً من yt-dlp لتجاوز حظر يوتيوب
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -26,6 +32,7 @@ jobs:
         env:
           PAGE_ACCESS_TOKEN: ${{ secrets.PAGE_ACCESS_TOKEN }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
         run: |
           python main.py
 
