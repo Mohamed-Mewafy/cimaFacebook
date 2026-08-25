@@ -81,7 +81,7 @@ def get_next_unposted_media():
     return None, None, None, None, None, None
 
 def download_trailer(trailer_url, media_title):
-    print(f"[*] جاري تحميل التريلر لـ: {media_title} بالصيغة المرنة...")
+    print(f"[*] جاري تحميل التريلر لـ: {media_title}...")
     output_filename = "trailer.mp4"
     
     if os.path.exists(output_filename):
@@ -95,15 +95,13 @@ def download_trailer(trailer_url, media_title):
         with open(cookies_file, "w", encoding="utf-8") as f:
             f.write(cleaned_content + "\n")
             
-    # إعدادات مرنة جداً لتجاوز قيود يوتيوب على السيرفرات السحابية
+    # إعدادات افتراضية مرنة تترك لـ yt_dlp حرية اختيار المتاح بدون قيود
     ydl_opts = {
-        'format': 'best',
         'outtmpl': output_filename,
         'noplaylist': True,
         'quiet': False,
         'ignoreerrors': False,
         'no_warnings': True,
-        'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
     }
     
     if os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 0:
