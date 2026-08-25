@@ -43,6 +43,7 @@ def get_next_unposted_media():
             if not title_en or title_en in history or title_en in failed:
                 continue
                 
+            # جلب تفاصيل الفيلم بالعربي
             url_details_ar = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={TMDB_API_KEY}&language=ar"
             details_ar = requests.get(url_details_ar).json()
             
@@ -53,15 +54,34 @@ def get_next_unposted_media():
             release_date = details_ar.get('release_date') or movie.get('release_date', '')
             vote_average = round(details_ar.get('vote_average') or movie.get('vote_average', 0), 1)
             
-            return title_en, overview_ar, release_date, vote_average
+            # جلب رابط التريلر الرسمي من TMDB مباشرة لتجنب حظر البحث العشوائي في يوتيوب
+            url_videos = f"https://api.themoviedb.org/3/movie/{movie_id}/videos?api_key={TMDB_API_KEY}"
+            videos_resp = requests.get(url_videos).json().get('results', [])
+            
+            trailer_url = None
+            for v in videos_resp:
+                if v.get('site') == 'YouTube' and v.get('type') == 'Trailer':
+                    key = v.get('key')
+                    trailer_url = f"https://www.youtube.com/watch?v={key}"
+                    break
+            
+            # لو مفيش تريلر رسمي، ندور على أي فيديو يوتيوب متاح للفيلم
+            if not trailer_url and videos_resp:
+                for v in videos_resp:
+                    if v.get('site') == 'YouTube':
+                        key = v.get('key')
+                        trailer_url = f"https://www.youtube.com/watch?v={key}"
+                        break
+            
+            return title_en, overview_ar, release_date, vote_average, trailer_url
                 
     except Exception as e:
         print(f"[-] خطأ في الاتصال بـ TMDB: {e}")
         
-    return None, None, None, None
+    return None, None, None, None, None
 
-def download_trailer(media_title):
-    print(f"[*] جاري البحث وتحميل التريلر لـ: {media_title} ...")
+def download_trailer(trailer_url, media_title):
+    print(f"[*] جاري تحميل التريلر لـ: {media_title} باستخدام الرابط المباشر...")
     output_filename = "trailer.mp4"
     
     if os.path.exists(output_filename):
@@ -75,13 +95,11 @@ def download_trailer(media_title):
         with open(cookies_file, "w", encoding="utf-8") as f:
             f.write(cleaned_content + "\n")
             
-    # إضافة تجاوزات يوتيوب ووضع صيغة مرنة جداً تتخطى مشاكل التحدي
     ydl_opts = {
-        'format': 'b/bv+ba',
+        'format': 'best',
         'outtmpl': output_filename,
         'noplaylist': True,
         'quiet': True,
-        'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
     }
     
     if os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 0:
@@ -89,8 +107,7 @@ def download_trailer(media_title):
 
     try:
         with YoutubeDL(ydl_opts) as ydl:
-            search_query = f"ytsearch1:{media_title} official trailer"
-            ydl.download([search_query])
+            ydl.download([trailer_url])
             
         if os.path.exists(cookies_file):
             os.remove(cookies_file)
@@ -154,14 +171,22 @@ def cleanup(files):
 if __name__ == "__main__":
     print("=== تنفيذ مهمة نشر فيلم واحد (CimaSpace Bot) ===")
     
-    title, overview, release_date, vote_average = get_next_unposted_media()
+    title, overview, release_date, vote_average, trailer_url = get_next_unposted_media()
     if not title:
         print("[-] لا توجد أفلام جديدة متاحة حالياً.")
         sys.exit(0)
         
     print(f"[+] الفيلم المستهدف: {title}")
     
-    raw_video = download_trailer(title)
+    if not trailer_url:
+        print("[-] لا يوجد تريلر متاح لهذا الفيلم في TMDB، تسجيل في القائمة السوداء...")
+        failed_list = load_list(FAILED_FILE)
+        if title not in failed_list:
+            failed_list.append(title)
+            save_list(FAILED_FILE, failed_list)
+        sys.exit(0)
+        
+    raw_video = download_trailer(trailer_url, title)
     if not raw_video:
         print("[-] خطأ في التحميل، تسجيل في القائمة السوداء...")
         failed_list = load_list(FAILED_FILE)
