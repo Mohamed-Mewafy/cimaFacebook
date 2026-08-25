@@ -16,12 +16,13 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11' # تم التحديث لتجنب تحذير بايثون 3.10
+        python-version: '3.11'
 
-    - name: Install Dependencies
+    - name: Install Dependencies & FFmpeg
       run: |
         python -m pip install --upgrade pip
         pip install requests yt-dlp
+        sudo apt-get update && sudo apt-get install -y ffmpeg
 
     - name: Run Main Script
       run: |
