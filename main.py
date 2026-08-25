@@ -87,17 +87,16 @@ def download_trailer(trailer_url, media_title):
     if os.path.exists(output_filename):
         os.remove(output_filename)
         
-    # إعدادات التنزيل مع الدمج التلقائي لصيغة MP4 عبر ffmpeg
+    # صيغة مرنة ومضمونة لتجنب مشاكل الصيغ غير المتاحة
     ydl_opts = {
-        'format': 'bestvideo+bestaudio/best',
-        'merge_output_format': 'mp4',
+        'format': 'best',
         'outtmpl': output_filename,
         'noplaylist': True,
         'quiet': False,
         'ignoreerrors': False,
         'no_warnings': True,
         'geo_bypass': True,
-        'extractor_args': {'youtube': {'player_client': ['android']}},
+        'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
     }
 
     if os.path.exists("cookies.txt"):
