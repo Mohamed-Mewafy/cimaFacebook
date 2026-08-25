@@ -1,43 +1,44 @@
-name: CimaSpace Auto Poster
+name: Run Bot
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
-      # إضافة تشغيل Node.js المطلوب حالياً من yt-dlp لتجاوز حظر يوتيوب
+      # أضف الخطوة دي هنا عشان تحل مشاكل يوتيوب نهائياً
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install requests yt-dlp
 
-      - name: Run Bot Script
+      - name: Run python main.py
         env:
-          PAGE_ACCESS_TOKEN: ${{ secrets.PAGE_ACCESS_TOKEN }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          PAGE_ACCESS_TOKEN: ${{ secrets.PAGE_ACCESS_TOKEN }}
           YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
-        run: |
-          python main.py
+        run: python main.py
 
       - name: Commit and push updated history json
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweigel/git-auto-commit-action@v4
         with:
           commit_message: "Auto-posted new movie & update history [skip ci]"
-          branch: main
+          file_pattern: "*.json"
