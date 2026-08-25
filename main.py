@@ -5,8 +5,7 @@ import requests
 from yt_dlp import YoutubeDL
 
 # =================CONFIGURATION================
-# قراءة المفاتيح بأمان من البيئة (سواء جهازك أو جيت هاب)
-TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "cebc63c38c381423c4ba63134d073a93")
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 PAGE_ACCESS_TOKEN = os.environ.get("PAGE_ACCESS_TOKEN", "")
 PAGE_ID = "401289663059335"
 SITE_URL = "https://cimaspace.site"
@@ -14,6 +13,7 @@ SITE_URL = "https://cimaspace.site"
 HISTORY_FILE = "posted_movies.json"
 FAILED_FILE = "failed_movies.json"
 # ==============================================
+
 def load_list(filename):
     if os.path.exists(filename):
         try:
@@ -72,7 +72,11 @@ def download_trailer(media_title):
         'outtmpl': output_filename,
         'noplaylist': True,
         'quiet': True,
-        'extractor_args': {'youtube': {'player_client': ['android']}}
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['ios', 'web']
+            }
+        }
     }
     
     try:
@@ -130,7 +134,7 @@ def cleanup(files):
     for f in files:
         if os.path.exists(f):
             try:
-                os.path.remove(f)
+                os.remove(f)
             except:
                 pass
 
