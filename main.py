@@ -5,7 +5,7 @@ import requests
 from yt_dlp import YoutubeDL
 
 # =================CONFIGURATION================
-TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "cebc63c38c381423c4ba63134d073a93")
 PAGE_ACCESS_TOKEN = os.environ.get("PAGE_ACCESS_TOKEN", "")
 PAGE_ID = "401289663059335"
 SITE_URL = "https://cimaspace.site"
@@ -67,28 +67,40 @@ def download_trailer(media_title):
     if os.path.exists(output_filename):
         os.remove(output_filename)
         
+    # كتابة ملف الكوكيز مؤقتاً من متغير البيئة لتجاوز حظر يوتيوب
+    cookies_content = os.environ.get("YOUTUBE_COOKIES", "")
+    cookies_file = "cookies.txt"
+    if cookies_content:
+        with open(cookies_file, "w", encoding="utf-8") as f:
+            f.write(cookies_content)
+            
     ydl_opts = {
         'format': 'best[height<=720]',
         'outtmpl': output_filename,
         'noplaylist': True,
         'quiet': True,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['ios', 'web']
-            }
-        }
     }
     
+    # ربط ملف الكوكيز إذا كان متوفراً
+    if os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 0:
+        ydl_opts['cookiefile'] = cookies_file
+
     try:
         with YoutubeDL(ydl_opts) as ydl:
             search_query = f"ytsearch1:{media_title} official trailer"
             ydl.download([search_query])
+            
+        # تنظيف ملف الكوكيز المؤقت بعد الانتهاء
+        if os.path.exists(cookies_file):
+            os.remove(cookies_file)
             
         if os.path.exists(output_filename) and os.path.getsize(output_filename) > 0:
             print("[+] تم تحميل التريلر بنجاح!")
             return output_filename
     except Exception as e:
         print(f"[-] خطأ في التحميل من يوتيوب: {e}")
+        if os.path.exists(cookies_file):
+            os.remove(cookies_file)
     return None
 
 def post_to_facebook(video_path, title, overview, release_date, vote_average):
