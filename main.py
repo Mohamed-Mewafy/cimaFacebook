@@ -87,7 +87,7 @@ def download_trailer(trailer_url, media_title):
     if os.path.exists(output_filename):
         os.remove(output_filename)
         
-    # إعدادات متطورة لتجاوز الحظر بدون كوكيز وبدون الحاجة لبرامج خارجية
+    # إعدادات yt-dlp الأساسية
     ydl_opts = {
         'format': 'best[ext=mp4]/best',
         'outtmpl': output_filename,
@@ -98,6 +98,13 @@ def download_trailer(trailer_url, media_title):
         'geo_bypass': True,
         'extractor_args': {'youtube': {'player_client': ['android']}},
     }
+
+    # التحقق من وجود ملف الكوكيز واستخدامه لتجاوز حظر يوتيوب (Bot Verification)
+    if os.path.exists("cookies.txt"):
+        ydl_opts['cookiefile'] = "cookies.txt"
+        print("[+] تم العثور على ملف الكوكيز واستخدامه في التحميل.")
+    else:
+        print("[-] تنبيه: لم يتم العثور على ملف cookies.txt محلياً.")
 
     try:
         with YoutubeDL(ydl_opts) as ydl:
@@ -190,7 +197,7 @@ if __name__ == "__main__":
         history = load_list(HISTORY_FILE)
         history.append(movie_id)
         save_list(HISTORY_FILE, history)
-        print("[+] تم الحفظ وتحديث السجل بنجاحة.")
+        print("[+] تم الحفظ وتحديث السجل بنجاح.")
         
     cleanup([raw_video])
     print("=== انتهت المهمة وأغلق السكربت بنجاح ===")
