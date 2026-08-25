@@ -12,6 +12,7 @@ SITE_URL = "https://cimaspace.site"
 
 HISTORY_FILE = "posted_movies.json"
 FAILED_FILE = "failed_movies.json"
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 # ==============================================
 
 def load_list(filename):
@@ -34,18 +35,18 @@ def get_next_unposted_media():
     url_en = f"https://api.themoviedb.org/3/trending/movie/day?api_key={TMDB_API_KEY}&language=en-US"
     
     try:
-        response_en = requests.get(url_en).json().get('results', [])
+        response_en = requests.get(url_en, headers=HEADERS).json().get('results', [])
         
         for movie in response_en:
-            movie_id = movie.get('id')
+            movie_id = str(movie.get('id'))
             title_en = movie.get('title') or movie.get('name')
             
-            if not title_en or title_en in history or title_en in failed:
+            if not movie_id or movie_id in history or movie_id in failed:
                 continue
                 
             # جلب تفاصيل الفيلم بالعربي
             url_details_ar = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={TMDB_API_KEY}&language=ar"
-            details_ar = requests.get(url_details_ar).json()
+            details_ar = requests.get(url_details_ar, headers=HEADERS).json()
             
             overview_ar = details_ar.get('overview', '')
             if not overview_ar or len(overview_ar) < 20:
@@ -56,7 +57,7 @@ def get_next_unposted_media():
             
             # جلب رابط التريلر الرسمي من TMDB مباشرة
             url_videos = f"https://api.themoviedb.org/3/movie/{movie_id}/videos?api_key={TMDB_API_KEY}"
-            videos_resp = requests.get(url_videos).json().get('results', [])
+            videos_resp = requests.get(url_videos, headers=HEADERS).json().get('results', [])
             
             trailer_url = None
             for v in videos_resp:
@@ -72,12 +73,12 @@ def get_next_unposted_media():
                         trailer_url = f"https://www.youtube.com/watch?v={key}"
                         break
             
-            return title_en, overview_ar, release_date, vote_average, trailer_url
+            return movie_id, title_en, overview_ar, release_date, vote_average, trailer_url
                 
     except Exception as e:
         print(f"[-] خطأ في الاتصال بـ TMDB: {e}")
         
-    return None, None, None, None, None
+    return None, None, None, None, None, None
 
 def download_trailer(trailer_url, media_title):
     print(f"[*] جاري تحميل التريلر لـ: {media_title} بالصيغة المرنة...")
@@ -94,7 +95,6 @@ def download_trailer(trailer_url, media_title):
         with open(cookies_file, "w", encoding="utf-8") as f:
             f.write(cleaned_content + "\n")
             
-    # إعدادات مرنة جداً لتجنب خطأ صيغة يوتيوب المفقودة على السيرفرات
     ydl_opts = {
         'format': 'best/bestvideo+bestaudio/best',
         'outtmpl': output_filename,
@@ -150,7 +150,7 @@ def post_to_facebook(video_path, title, overview, release_date, vote_average):
     try:
         with open(video_path, 'rb') as video_file:
             files = {'source': video_file}
-            response = requests.post(url, data=payload, files=files)
+            response = requests.post(url, data=payload, files=files, headers=HEADERS)
             result = response.json()
             
             if 'id' in result:
@@ -173,18 +173,18 @@ def cleanup(files):
 if __name__ == "__main__":
     print("=== تنفيذ مهمة نشر فيلم واحد (CimaSpace Bot - Video Mode) ===")
     
-    title, overview, release_date, vote_average, trailer_url = get_next_unposted_media()
-    if not title:
+    movie_id, title, overview, release_date, vote_average, trailer_url = get_next_unposted_media()
+    if not movie_id:
         print("[-] لا توجد أفلام جديدة متاحة حالياً.")
         sys.exit(0)
         
-    print(f"[+] الفيلم المستهدف: {title}")
+    print(f"[+] الفيلم المستهدف: {title} (ID: {movie_id})")
     
     if not trailer_url:
         print("[-] لا يوجد تريلر متاح لهذا الفيلم في TMDB، تسجيل في القائمة السوداء...")
         failed_list = load_list(FAILED_FILE)
-        if title not in failed_list:
-            failed_list.append(title)
+        if movie_id not in failed_list:
+            failed_list.append(movie_id)
             save_list(FAILED_FILE, failed_list)
         sys.exit(0)
         
@@ -192,8 +192,8 @@ if __name__ == "__main__":
     if not raw_video:
         print("[-] خطأ في التحميل، تسجيل في القائمة السوداء...")
         failed_list = load_list(FAILED_FILE)
-        if title not in failed_list:
-            failed_list.append(title)
+        if movie_id not in failed_list:
+            failed_list.append(movie_id)
             save_list(FAILED_FILE, failed_list)
         sys.exit(0)
         
@@ -201,7 +201,7 @@ if __name__ == "__main__":
     
     if is_published:
         history = load_list(HISTORY_FILE)
-        history.append(title)
+        history.append(movie_id)
         save_list(HISTORY_FILE, history)
         print("[+] تم الحفظ وتحديث السجل بنجاح.")
         
