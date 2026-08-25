@@ -87,9 +87,10 @@ def download_trailer(trailer_url, media_title):
     if os.path.exists(output_filename):
         os.remove(output_filename)
         
-    # إعدادات yt-dlp الأساسية
+    # إعدادات التنزيل مع الدمج التلقائي لصيغة MP4 عبر ffmpeg
     ydl_opts = {
-        'format': 'best[ext=mp4]/best',
+        'format': 'bestvideo+bestaudio/best',
+        'merge_output_format': 'mp4',
         'outtmpl': output_filename,
         'noplaylist': True,
         'quiet': False,
@@ -99,7 +100,6 @@ def download_trailer(trailer_url, media_title):
         'extractor_args': {'youtube': {'player_client': ['android']}},
     }
 
-    # التحقق من وجود ملف الكوكيز واستخدامه لتجاوز حظر يوتيوب (Bot Verification)
     if os.path.exists("cookies.txt"):
         ydl_opts['cookiefile'] = "cookies.txt"
         print("[+] تم العثور على ملف الكوكيز واستخدامه في التحميل.")
