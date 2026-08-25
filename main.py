@@ -80,7 +80,7 @@ def get_next_unposted_media():
     return None, None, None, None, None
 
 def download_trailer(trailer_url, media_title):
-    print(f"[*] جاري تحميل التريلر لـ: {media_title} باستخدام الرابط المباشر...")
+    print(f"[*] جاري تحميل التريلر لـ: {media_title} بالصيغة المرنة...")
     output_filename = "trailer.mp4"
     
     if os.path.exists(output_filename):
@@ -94,11 +94,14 @@ def download_trailer(trailer_url, media_title):
         with open(cookies_file, "w", encoding="utf-8") as f:
             f.write(cleaned_content + "\n")
             
+    # إعدادات مرنة جداً لتجنب خطأ صيغة يوتيوب المفقودة على السيرفرات
     ydl_opts = {
-        'format': 'best',
+        'format': 'best/bestvideo+bestaudio/best',
         'outtmpl': output_filename,
         'noplaylist': True,
-        'quiet': True,
+        'quiet': False,
+        'ignoreerrors': False,
+        'no_warnings': False,
     }
     
     if os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 0:
@@ -168,7 +171,7 @@ def cleanup(files):
                 pass
 
 if __name__ == "__main__":
-    print("=== تنفيذ مهمة نشر فيلم واحد (CimaSpace Bot) ===")
+    print("=== تنفيذ مهمة نشر فيلم واحد (CimaSpace Bot - Video Mode) ===")
     
     title, overview, release_date, vote_average, trailer_url = get_next_unposted_media()
     if not title:
