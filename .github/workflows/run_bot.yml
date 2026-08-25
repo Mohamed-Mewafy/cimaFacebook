@@ -1,16 +1,16 @@
-name: run-bot
+name: Run YouTube Script
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # أو حسب التوقيت اللي انت رابطه بيه
-  workflow_dispatch:
+    - cron: '0 0 * * *' # يمكنك تعديل وقت الجدول الزمني حسب رغبتك
+  workflow_dispatch: # للسماح بالتشغيل اليدوي من تبويب Actions
 
 jobs:
-  build:
+  run-script:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check out repository
+    - name: Checkout Repository
       uses: actions/checkout@v4
 
     - name: Set up Python
@@ -18,17 +18,22 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install dependencies
+    - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install yt-dlp requests # أضف باقي المكتبات التي تحتاجها هنا
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        # ضع هنا أي مكتبات إضافية تحتاجها مثل yt-dlp أو غيره لو مش موجودة في requirements.txt
+        # pip install yt-dlp
 
-    # ⬅️ **هذه هي الخطوة الجديدة الخاصة بكتابة الكوكيز**
-    - name: Write YouTube Cookies
+    - name: Write YouTube Cookies from Base64 Secret
       run: |
-        cat << 'EOF' > cookies.txt
-        ${{ secrets.YOUTUBE_COOKIES }}
-        EOF
+        echo "${{ secrets.YOUTUBE_COOKIES }}" | base64 --decode > cookies.txt
 
-    - name: Run python main.py
-      run: python main.py
+    - name: Run Main Script
+      run: |
+        python main.py # استبدل main.py باسم السكربت الرئيسي لديك
+
+    - name: Clean up sensitive files
+      if: always()
+      run: |
+        rm -f cookies.txt
