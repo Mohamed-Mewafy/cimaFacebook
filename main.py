@@ -95,8 +95,8 @@ def download_trailer(trailer_url, media_title):
         with open(cookies_file, "w", encoding="utf-8") as f:
             f.write(cleaned_content + "\n")
             
-    # إعدادات افتراضية مرنة تترك لـ yt_dlp حرية اختيار المتاح بدون قيود
     ydl_opts = {
+        'format': 'best[ext=mp4]/best',
         'outtmpl': output_filename,
         'noplaylist': True,
         'quiet': False,
@@ -197,6 +197,8 @@ if __name__ == "__main__":
             save_list(FAILED_FILE, failed_list)
         sys.exit(0)
         
+    is_published = post_to_facebook(raw_video, title, overview, release_date, vote_average)
+    
     is_published = post_to_facebook(raw_video, title, overview, release_date, vote_average)
     
     if is_published:
