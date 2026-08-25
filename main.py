@@ -95,6 +95,7 @@ def download_trailer(trailer_url, media_title):
         with open(cookies_file, "w", encoding="utf-8") as f:
             f.write(cleaned_content + "\n")
             
+    # الصيغة الذكية المتوافقة مع FFmpeg لدمج أفضل فيديو وأفضل صوت
     ydl_opts = {
         'format': 'bv*+ba/b',
         'outtmpl': output_filename,
