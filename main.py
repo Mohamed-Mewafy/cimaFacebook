@@ -75,12 +75,13 @@ def download_trailer(media_title):
         with open(cookies_file, "w", encoding="utf-8") as f:
             f.write(cleaned_content + "\n")
             
-    # استخدام صيغة 'best' لتجنب مشاكل فك الشيفرة والدمج نهائياً
+    # إضافة تجاوزات يوتيوب ووضع صيغة مرنة جداً تتخطى مشاكل التحدي
     ydl_opts = {
-        'format': 'best',
+        'format': 'b/bv+ba',
         'outtmpl': output_filename,
         'noplaylist': True,
         'quiet': True,
+        'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
     }
     
     if os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 0:
