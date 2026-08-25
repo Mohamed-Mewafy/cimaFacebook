@@ -55,7 +55,7 @@ def get_next_unposted_media():
             release_date = details_ar.get('release_date') or movie.get('release_date', '')
             vote_average = round(details_ar.get('vote_average') or movie.get('vote_average', 0), 1)
             
-            # جلب رابط التريلر من يوتيوب عبر TMDB
+            # جلب الفيديوهات
             url_videos = f"https://api.themoviedb.org/3/movie/{movie_id}/videos?api_key={TMDB_API_KEY}"
             videos_resp = requests.get(url_videos, headers=HEADERS).json().get('results', [])
             
@@ -87,7 +87,7 @@ def download_trailer(trailer_url, media_title):
     if os.path.exists(output_filename):
         os.remove(output_filename)
         
-    # إعدادات متقدمة جداً لتجاوز حظر يوتيوب على السيرفرات السحابية بدون كوكيز
+    # استخدام مشغل مختلف يتجاوز الحظر تماماً بدون كุกيز
     ydl_opts = {
         'format': 'best[ext=mp4]/best',
         'outtmpl': output_filename,
@@ -95,7 +95,7 @@ def download_trailer(trailer_url, media_title):
         'quiet': False,
         'ignoreerrors': False,
         'no_warnings': True,
-        'extractor_args': {'youtube': {'player_client': ['android', 'web']}}, # خداع يوتيوب لتجاوز الحظر
+        'extractor_args': {'youtube': {'player_client': ['ios', 'mweb']}},
     }
 
     try:
@@ -110,7 +110,7 @@ def download_trailer(trailer_url, media_title):
     return None
 
 def post_to_facebook(video_path, title, overview, release_date, vote_average):
-    print("[*] جاري نشر الفيديو (التريلر) على الفيسبوك...")
+    print("[*] جاري نشر التريلر على الفيسبوك...")
     url = f"https://graph.facebook.com/v18.0/{PAGE_ID}/videos"
     
     year = release_date.split("-")[0] if release_date else "جديد"
@@ -157,7 +157,7 @@ def cleanup(files):
                 pass
 
 if __name__ == "__main__":
-    print("=== تنفيذ مهمة نشر تريلر فيلم (CimaSpace Bot - Video Mode) ===")
+    print("=== تنفيذ مهمة نشر التريلر (CimaSpace Bot - Video Mode) ===")
     
     movie_id, title, overview, release_date, vote_average, trailer_url = get_next_unposted_media()
     if not movie_id:
