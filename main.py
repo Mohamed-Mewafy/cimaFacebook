@@ -54,7 +54,7 @@ def get_next_unposted_media():
             release_date = details_ar.get('release_date') or movie.get('release_date', '')
             vote_average = round(details_ar.get('vote_average') or movie.get('vote_average', 0), 1)
             
-            # جلب رابط التريلر الرسمي من TMDB مباشرة لتجنب حظر البحث العشوائي في يوتيوب
+            # جلب رابط التريلر الرسمي من TMDB مباشرة
             url_videos = f"https://api.themoviedb.org/3/movie/{movie_id}/videos?api_key={TMDB_API_KEY}"
             videos_resp = requests.get(url_videos).json().get('results', [])
             
@@ -65,7 +65,6 @@ def get_next_unposted_media():
                     trailer_url = f"https://www.youtube.com/watch?v={key}"
                     break
             
-            # لو مفيش تريلر رسمي، ندور على أي فيديو يوتيوب متاح للفيلم
             if not trailer_url and videos_resp:
                 for v in videos_resp:
                     if v.get('site') == 'YouTube':
