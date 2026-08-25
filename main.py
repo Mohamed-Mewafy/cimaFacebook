@@ -96,7 +96,7 @@ def download_trailer(trailer_url, media_title):
             f.write(cleaned_content + "\n")
             
     ydl_opts = {
-        'format': 'best[ext=mp4]/best',
+        'format': 'bv*+ba/b',
         'outtmpl': output_filename,
         'noplaylist': True,
         'quiet': False,
@@ -197,8 +197,6 @@ if __name__ == "__main__":
             save_list(FAILED_FILE, failed_list)
         sys.exit(0)
         
-    is_published = post_to_facebook(raw_video, title, overview, release_date, vote_average)
-    
     is_published = post_to_facebook(raw_video, title, overview, release_date, vote_average)
     
     if is_published:
