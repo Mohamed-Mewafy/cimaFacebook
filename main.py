@@ -87,7 +87,7 @@ def download_trailer(trailer_url, media_title):
     if os.path.exists(output_filename):
         os.remove(output_filename)
         
-    # صيغة مرنة ومضمونة لتجنب مشاكل الصيغ غير المتاحة
+    # إعدادات مخصصة لتجاوز قيود يوتيوب والاعتماد على Android client
     ydl_opts = {
         'format': 'best',
         'outtmpl': output_filename,
@@ -96,7 +96,7 @@ def download_trailer(trailer_url, media_title):
         'ignoreerrors': False,
         'no_warnings': True,
         'geo_bypass': True,
-        'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
+        'extractor_args': {'youtube': {'player_client': ['android']}},
     }
 
     if os.path.exists("cookies.txt"):
