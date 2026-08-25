@@ -1,4 +1,4 @@
-name: Run Bot
+Name: Run Bot
 
 on:
   schedule:
@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install requests yt-dlp
+          pip install --upgrade requests yt-dlp
 
       - name: Run python main.py
         env:
