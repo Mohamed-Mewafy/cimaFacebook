@@ -24,6 +24,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install FFmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v3
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip
